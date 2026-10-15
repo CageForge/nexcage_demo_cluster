@@ -1,103 +1,55 @@
-# NexCage Demo Cluster 📦
+# NexCage Demo Cluster (Standalone)
 
-[![Deploy to GitHub Pages](https://github.com/IhorTelepenko/Nexcage_demo_cluster/actions/workflows/deploy.yml/badge.svg)](https://github.com/IhorTelepenko/Nexcage_demo_cluster/actions/workflows/deploy.yml)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?logo=github)](https://ihortelepenko.github.io/Nexcage_demo_cluster/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+Standalone interactive Web UI & Cluster Simulator for **[NexCage](https://github.com/CageForge/nexcage)**.
 
-An interactive, zero-dependency web control panel demonstrating **[NexCage](https://github.com/CageForge/nexcage)** — the OCI container runtime and orchestration manager for Proxmox VE clusters.
-
-> **Live Demo:** Try it directly in your browser without installing anything:  
-> 👉 **[https://ihortelepenko.github.io/Nexcage_demo_cluster/](https://ihortelepenko.github.io/Nexcage_demo_cluster/)**
-
----
-
-## ✨ Features Demonstrated
-
-- **Multi-Node Container Lifecycle**:
-  - Full container orchestration (`create`, `start`, `stop`, `pause`, `resume`, `kill`, `delete`, `update limits`) across cluster nodes (`mgr`, `titan`, `prox-home`).
-  - **Quick Actions Menu**: 1-click start, stop, restart, and freeze directly from each row without entering modals.
-- **Dual Runtime Routing Engine**:
-  - Automatically routes workloads between standard `proxmox-lxc` and `crun` (OCI) using regex patterns (e.g. `^(kube-ovn-.*|cilium-.*)$` → `crun`, `*` → `lxc`).
-- **OCI Runtime Spec v1.1.0 Inspector**:
-  - Live inspection of `nexcage state <container>` producing compliant OCI State JSON with node annotations.
-- **In-Browser Container Shell (`pct exec`)**:
-  - Interactive console honoring local vs. remote cluster node constraints.
-- **Storage & Template Registry**:
-  - Template manager (`nexcage images`), pulling OCI images (`nexcage pull`), and removing volume templates (`nexcage rmi`).
-- **Cluster & Storage Topology**:
-  - Corosync quorum status, cluster nodes health, and storage pools utilization (LVM-Thin, ZFS, shared RDMA/NFS).
-- **Interactive CLI Terminal**:
-  - Terminal emulator supporting authentic `nexcage` commands (`list`, `start`, `stop`, `state`, `health`, `features`, `--help`, etc.).
-- **Subsystem Diagnostics**:
-  - Real-time health inspector verifying Proxmox VE tools (`pct`, `pvesh`, `pvesm`), ZFS datasets, and libcrun subsystem.
+This repository is **completely standalone** and isolated. It simulates the NexCage OCI runtime, node agents, Raft consensus, metrics streaming, container lifecycles, and logs without requiring root privileges or a Linux environment.
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: One-Click Local Launcher (Zero Dependencies)
-
-If you downloaded the repository or archive, you can run it immediately using Python (pre-installed on Linux and macOS):
-
+### Option 1: Run with Docker
 ```bash
-# On Linux / macOS:
-./run.sh
-
-# On Windows:
-run.bat
+docker build -t nexcage-demo .
+docker run -p 3000:3000 nexcage-demo
 ```
-Then open `http://localhost:3000` in your web browser.
+Then open: **[http://localhost:3000](http://localhost:3000)**
 
----
-
-### Option 2: Docker Container (~15 MB)
-
-Run the self-contained lightweight Nginx container:
-
+### Option 2: Run with Node.js
 ```bash
-docker build -t nexcage-demo-cluster .
-docker run -d -p 3000:80 --name nexcage-demo nexcage-demo-cluster
-```
-Visit `http://localhost:3000`.
-
----
-
-### Option 3: Development Mode (Vite + React)
-
-For developers who want to modify or extend the interface:
-
-```bash
-# 1. Install dependencies
 npm install
-
-# 2. Start local development server
 npm run dev
-
-# 3. Build production bundle
-npm run build
 ```
+Open **[http://localhost:3000](http://localhost:3000)**.
+
+### Option 3: Quick scripts
+- **Linux / macOS**: `./run.sh`
+- **Windows**: `run.bat`
 
 ---
 
-## 🌐 Automatic GitHub Pages Deployment
+## 🔄 Updating from Upstream (`CageForge/nexcage`)
 
-This repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml`).
+All synchronization tools are contained entirely within this demo repository. **No changes to your fork or parent repository are required!**
 
-To enable the live demo on your fork or repository:
-1. Push this code to the `main` branch:
-   ```bash
-   git add .
-   git commit -m "Initial commit of NexCage demo cluster"
-   git push origin main
-   ```
-2. In your GitHub repository settings:
-   - Go to **Settings** → **Pages**.
-   - Under **Build and deployment** → **Source**, select **GitHub Actions**.
-3. Once the action finishes, your demo will be live at:
-   `https://<your-username>.github.io/Nexcage_demo_cluster/`
+### Automated Updates (GitHub Actions)
+The workflow in `.github/workflows/check_upstream.yml` automatically:
+1. Runs once a week (or manually via *Actions -> Run workflow*).
+2. Checks [CageForge/nexcage releases](https://github.com/CageForge/nexcage/releases).
+3. Opens a GitHub Issue in this repository if a newer release is published, complete with update instructions.
+
+### Manual Update Script
+Run the built-in update script directly inside this directory:
+```bash
+./scripts/sync_from_upstream.sh
+```
+
+Flags available:
+- `./scripts/sync_from_upstream.sh --check` — Only checks if upstream has a newer release.
+- `./scripts/sync_from_upstream.sh --pull`  — Downloads and updates frontend components directly from `CageForge/nexcage:main`.
+- `./scripts/sync_from_upstream.sh --build` — Verifies production build.
 
 ---
 
 ## 📄 License
-
-Licensed under the Apache License 2.0.
+Licensed under Apache License 2.0.
