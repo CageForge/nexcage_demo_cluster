@@ -1,4 +1,5 @@
 import { Container, TemplateImage, ClusterNode, StoragePool, NexCageConfig } from '../types/nexcage';
+import { PROXMOX_VERSION, PROXMOX_FULL_VERSION, COMMIT_HASH } from '../version';
 
 export const initialContainers: Container[] = [
   {
@@ -176,7 +177,7 @@ export const initialNodes: ClusterNode[] = [
     name: 'mgr',
     ip: '192.168.1.10',
     status: 'online',
-    pveVersion: 'pve-manager/8.2.7/3817a0a3 (kernel: 6.8.8-4-pve)',
+    pveVersion: `pve-manager/9.2.20/3817a0a3 (${PROXMOX_VERSION}, kernel: 6.14.2-1-pve)`,
     cpuUsage: 18.4,
     memoryUsage: 42.6,
     storageUsage: 35.1,
@@ -187,7 +188,7 @@ export const initialNodes: ClusterNode[] = [
     name: 'titan',
     ip: '192.168.1.11',
     status: 'online',
-    pveVersion: 'pve-manager/8.2.7/3817a0a3 (kernel: 6.8.8-4-pve)',
+    pveVersion: `pve-manager/9.2.20/3817a0a3 (${PROXMOX_VERSION}, kernel: 6.14.2-1-pve)`,
     cpuUsage: 27.8,
     memoryUsage: 61.2,
     storageUsage: 48.0,
@@ -198,7 +199,7 @@ export const initialNodes: ClusterNode[] = [
     name: 'prox-home',
     ip: '192.168.1.12',
     status: 'online',
-    pveVersion: 'pve-manager/8.2.7/3817a0a3 (kernel: 6.8.8-4-pve)',
+    pveVersion: `pve-manager/9.2.20/3817a0a3 (${PROXMOX_VERSION}, kernel: 6.14.2-1-pve)`,
     cpuUsage: 8.1,
     memoryUsage: 22.0,
     storageUsage: 14.5,

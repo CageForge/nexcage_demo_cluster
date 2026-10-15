@@ -1,5 +1,6 @@
 import { Container, TemplateImage, ClusterNode, StoragePool, NexCageConfig, ContainerStatus, RuntimeBackend } from '../types/nexcage';
 import { initialContainers, initialTemplates, initialNodes, initialStorages, initialConfig } from '../mock/initialData';
+import { DEMO_VERSION, NEXCAGE_VERSION, PROXMOX_VERSION, PROXMOX_FULL_VERSION, ZIG_VERSION, COMMIT_HASH } from '../version';
 
 export interface CommandResult {
   stdout: string;
@@ -441,6 +442,22 @@ class NexCageEngine {
       return { stdout: '\x1Bc', stderr: '', exitCode: 0 };
     }
 
+    if (trimmed === 'pveversion') {
+      return {
+        stdout: `pve-manager/9.2.20/3817a0a3 (running kernel: 6.14.2-1-pve)\n`,
+        stderr: '',
+        exitCode: 0
+      };
+    }
+
+    if (trimmed === 'pveversion -v' || trimmed === 'pveversion --verbose') {
+      return {
+        stdout: `proxmox-ve: 9.2.0 (running kernel: 6.14.2-1-pve)\npve-manager: 9.2.20 (running version: 9.2.20/3817a0a3)\nproxmox-kernel-helper: 9.0.1\npve-kernel-6.14: 6.14.2-1-pve\ncorosync: 3.1.9-pve1\ncri-o: 1.30.2\ncrun: 1.18.2\nlibcrun: 1.18.2\nqemu-server: 9.1.5\npve-firewall: 6.0.4\npve-ha-manager: 5.0.3\nzfsutils-linux: 2.3.2-pve1\n`,
+        stderr: '',
+        exitCode: 0
+      };
+    }
+
     // Strip leading "nexcage" if present
     const cmdLine = trimmed.startsWith('nexcage ') ? trimmed.slice(8).trim() : (trimmed === 'nexcage' ? '--help' : trimmed);
     const parts = this.tokenize(cmdLine);
@@ -448,7 +465,7 @@ class NexCageEngine {
 
     if (command === '--version' || command === '-v' || command === 'version') {
       return {
-        stdout: `nexcage 0.13.0 (built with zig 0.13.0, crun backend enabled)\ncommit: e8a261c (2026-10-06)\n`,
+        stdout: `nexcage ${NEXCAGE_VERSION} (built with zig ${ZIG_VERSION}, crun backend enabled)\ndemo: v${DEMO_VERSION}\nhost: ${PROXMOX_FULL_VERSION}\ncommit: ${COMMIT_HASH} (2026-10-15)\n`,
         stderr: '',
         exitCode: 0
       };
@@ -636,7 +653,7 @@ class NexCageEngine {
 
   public runHealthCheck(): CommandResult {
     let report = '=== NexCage Proxmox & OCI Health Report ===\n\n';
-    report += '[OK] Cluster node local: mgr (PVE 8.2.7)\n';
+    report += `[OK] Cluster node local: mgr (${PROXMOX_FULL_VERSION})\n`;
     report += '[OK] pct tool: /usr/bin/pct exists, executable (exit 0)\n';
     report += '[OK] pvesh tool: /usr/bin/pvesh exists, cluster resources query OK (3 nodes online)\n';
     report += '[OK] pvesm tool: /usr/bin/pvesm storage status OK (local-lvm, shared-rdma accessible)\n';

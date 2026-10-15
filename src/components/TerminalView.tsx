@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Terminal, Send, Trash2, HelpCircle, Sparkles } from 'lucide-react';
 import { nexcage } from '../services/nexcageEngine';
+import { NEXCAGE_VERSION, ZIG_VERSION } from '../version';
 
 interface TerminalViewProps {
   onStateChange: () => void;
@@ -18,7 +19,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ onStateChange }) => 
   const [history, setHistory] = useState<LogEntry[]>([
     {
       command: 'nexcage --version',
-      stdout: 'nexcage 0.13.0 (built with zig 0.13.0, crun backend enabled)\ncommit: e8a261c (2026-10-06)\n',
+      stdout: `nexcage ${NEXCAGE_VERSION} (built with zig ${ZIG_VERSION}, crun backend enabled)\ncommit: e8a261c (2026-10-06)\n`,
       stderr: '',
       exitCode: 0,
     },

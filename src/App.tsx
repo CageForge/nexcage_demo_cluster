@@ -7,6 +7,7 @@ import { TerminalView } from './components/TerminalView';
 import { ConfigView } from './components/ConfigView';
 import { HealthCheckView } from './components/HealthCheckView';
 import { nexcage } from './services/nexcageEngine';
+import { DEMO_VERSION, NEXCAGE_VERSION, PROXMOX_VERSION } from './version';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<TabType>('containers');
@@ -78,10 +79,12 @@ export const App: React.FC = () => {
       </main>
 
       <footer className="border-t border-slate-900 bg-slate-950 py-4 px-6 text-xs text-slate-500 font-mono flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
-        <div className="flex items-center gap-2">
-          <span>NexCage v0.13.0</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-slate-300">NexCage v{NEXCAGE_VERSION}</span>
           <span>•</span>
-          <span>OCI Runtime for Proxmox VE</span>
+          <span className="text-purple-400 font-semibold">Demo v{DEMO_VERSION}</span>
+          <span>•</span>
+          <span>OCI Runtime for {PROXMOX_VERSION}</span>
           <span>•</span>
           <span className="text-emerald-500">Node: mgr (192.168.1.10)</span>
         </div>

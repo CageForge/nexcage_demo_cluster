@@ -8,6 +8,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEMO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Ensure all shell scripts have execution permission
+chmod +x "${DEMO_DIR}/run.sh" "${DEMO_DIR}/scripts/"*.sh 2>/dev/null || true
+
 if command -v python3 &>/dev/null; then
   python3 "${SCRIPT_DIR}/package_archives.py"
 else

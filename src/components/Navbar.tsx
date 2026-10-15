@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Layers, Server, Terminal, Settings, Activity, ShieldCheck } from 'lucide-react';
+import { DEMO_VERSION, NEXCAGE_VERSION, PROXMOX_VERSION } from '../version';
 
 export type TabType = 'containers' | 'templates' | 'cluster' | 'terminal' | 'config' | 'health';
 
@@ -27,15 +28,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
               <Box className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-lg tracking-tight text-white">NexCage</span>
-                <span className="px-1.5 py-0.5 text-xs font-mono font-medium bg-cyan-950/80 text-cyan-300 border border-cyan-800 rounded">
-                  v0.13.0
+            <div className="min-w-0">
+              <div className="flex items-center flex-nowrap gap-1.5 sm:gap-2">
+                <span className="font-bold text-lg tracking-tight text-white whitespace-nowrap">NexCage</span>
+                <span className="px-1.5 py-0.5 text-xs font-mono font-medium bg-cyan-950/80 text-cyan-300 border border-cyan-800 rounded whitespace-nowrap shrink-0" title="NexCage Runtime Engine Version">
+                  v{NEXCAGE_VERSION}
                 </span>
-                <span className="px-1.5 py-0.5 text-xs font-mono font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800 rounded flex items-center gap-1">
+                <span className="px-1.5 py-0.5 text-xs font-mono font-semibold bg-purple-950/80 text-purple-300 border border-purple-800/80 rounded whitespace-nowrap shrink-0" title="Demo Cluster Application Version">
+                  Demo v{DEMO_VERSION}
+                </span>
+                <span className="px-1.5 py-0.5 text-xs font-mono font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800 rounded flex items-center gap-1 whitespace-nowrap shrink-0" title="Target Proxmox VE Platform">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  PVE 8.2+
+                  {PROXMOX_VERSION}
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">OCI Runtime for Proxmox VE & crun</p>

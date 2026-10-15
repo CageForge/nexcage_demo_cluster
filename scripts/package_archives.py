@@ -65,6 +65,14 @@ def collect_files():
             if not should_exclude(rel_path, is_dir=False):
                 file_list.append((full_path, rel_path))
     file_list.sort(key=lambda x: x[1])
+
+    # Ensure executable permission on disk for shell scripts
+    for full_path, rel_path in file_list:
+        if rel_path.endswith('.sh') or rel_path.startswith('scripts/'):
+            try:
+                os.chmod(full_path, 0o755)
+            except OSError:
+                pass
     return file_list
 
 def create_zip(files, dest_path):
@@ -75,9 +83,12 @@ def create_zip(files, dest_path):
             for full_path, rel_path in files:
                 arc_name = os.path.join(ARCHIVE_ROOT_FOLDER, rel_path)
                 st = os.stat(full_path)
+                mode = st.st_mode
+                if rel_path.endswith('.sh') or rel_path.startswith('scripts/'):
+                    mode = mode | 0o755
                 zinfo = zipfile.ZipInfo.from_file(full_path, arc_name)
                 # Store Unix permissions in external_attr (preserves executable bit)
-                zinfo.external_attr = (st.st_mode & 0xFFFF) << 16
+                zinfo.external_attr = (mode & 0xFFFF) << 16
                 with open(full_path, 'rb') as f_in:
                     zf.writestr(zinfo, f_in.read(), compress_type=zipfile.ZIP_DEFLATED)
         shutil.move(temp_path, dest_path)
@@ -92,7 +103,11 @@ def create_tar_gz(files, dest_path):
         with tarfile.open(temp_path, "w:gz") as tar:
             for full_path, rel_path in files:
                 arc_name = os.path.join(ARCHIVE_ROOT_FOLDER, rel_path)
-                tar.add(full_path, arcname=arc_name, recursive=False)
+                tarinfo = tar.gettarinfo(full_path, arcname=arc_name)
+                if rel_path.endswith('.sh') or rel_path.startswith('scripts/'):
+                    tarinfo.mode = tarinfo.mode | 0o755
+                with open(full_path, "rb") as f_in:
+                    tar.addfile(tarinfo, f_in)
         shutil.move(temp_path, dest_path)
     finally:
         if os.path.exists(temp_path):

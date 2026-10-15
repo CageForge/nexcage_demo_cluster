@@ -19,14 +19,17 @@ export const ClusterView: React.FC<ClusterViewProps> = ({ nodes, storages }) => 
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-white">Proxmox VE Cluster: pve-cluster-primary</h3>
+                <h3 className="text-lg font-bold text-white">Proxmox VE 9.2 Cluster: pve-cluster-primary</h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 text-xs font-mono flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   Quorate (3/3 votes)
                 </span>
+                <span className="px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-xs font-mono hidden sm:inline-block">
+                  Debian 13 (Trixie)
+                </span>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Connected via Proxmox cluster API &amp; corosync 3.x • nexcage multi-node daemon active
+                Connected via Proxmox VE 9.2 cluster API &amp; corosync 3.1 • Linux kernel 6.14.2-1-pve • nexcage multi-node daemon active
               </p>
             </div>
           </div>

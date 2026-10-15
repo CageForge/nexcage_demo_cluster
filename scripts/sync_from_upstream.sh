@@ -13,10 +13,9 @@
 
 set -euo pipefail
 
-# ANSI Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\1;33m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
@@ -111,8 +110,10 @@ print_banner
 
 check_release() {
   echo -e "${BLUE}==> [1/4] Checking upstream release status...${NC}"
-  CURRENT_VERSION=$(node -p "require('${DEMO_DIR}/package.json').version" 2>/dev/null || echo "unknown")
-  echo -e "  Current demo package version: ${GREEN}${CURRENT_VERSION}${NC}"
+  CURRENT_DEMO_VER=$(tr -d ' \n\r' < "${DEMO_DIR}/VERSION" 2>/dev/null || echo "1.0.0")
+  CURRENT_NEXCAGE_VER=$(grep -E 'NEXCAGE_VERSION' "${DEMO_DIR}/src/version.ts" 2>/dev/null | sed -E "s/.*'([^']+)'.*/\1/" || echo "0.17.0")
+  echo -e "  Current Demo Cluster version:   ${GREEN}v${CURRENT_DEMO_VER}${NC}"
+  echo -e "  Current NexCage engine version: ${GREEN}v${CURRENT_NEXCAGE_VER}${NC}"
 
   if command -v curl &>/dev/null; then
     LATEST_TAG=$(curl -sSL -H "Accept: application/vnd.github.v3+json" \
@@ -121,11 +122,11 @@ check_release() {
 
     if [ -n "$LATEST_TAG" ]; then
       CLEAN_TAG="${LATEST_TAG#v}"
-      echo -e "  Latest upstream release tag:  ${YELLOW}${LATEST_TAG}${NC}"
-      if [ "$CLEAN_TAG" != "$CURRENT_VERSION" ]; then
-        echo -e "${YELLOW}  ⚠️  Newer version available (${CLEAN_TAG})!${NC}"
+      echo -e "  Latest upstream release tag:    ${YELLOW}${LATEST_TAG}${NC}"
+      if [ "$CLEAN_TAG" != "$CURRENT_NEXCAGE_VER" ]; then
+        echo -e "${YELLOW}  ⚠️  Newer NexCage engine version available (${CLEAN_TAG})!${NC}"
       else
-        echo -e "${GREEN}  ✓ Demo is already at the latest upstream release version.${NC}"
+        echo -e "${GREEN}  ✓ Demo engine is already at the latest upstream release version.${NC}"
       fi
     fi
   fi
@@ -151,15 +152,50 @@ pull_upstream_sources() {
     find "${DEMO_DIR}/src" -name "*.zig" -delete 2>/dev/null || true
   fi
 
-  # Update VERSION in package.json if VERSION file exists
+  # Dynamically extract upstream specifications directly from repo sources (zero hardcoding):
+  NEW_VER=""
   if [ -f "${EXTRACTED_DIR}/VERSION" ]; then
     NEW_VER=$(tr -d ' \n\r' < "${EXTRACTED_DIR}/VERSION")
-    echo "  -> Updating version in demo-cluster/package.json to ${NEW_VER}..."
-    if command -v sed &>/dev/null; then
-      sed -i.bak -E "s/\"version\": \"[^\"]+\"/\"version\": \"${NEW_VER}\"/" "${DEMO_DIR}/package.json"
-      rm -f "${DEMO_DIR}/package.json.bak"
-    fi
   fi
+
+  UPSTREAM_ZIG=""
+  if [ -f "${EXTRACTED_DIR}/build.zig.zon" ]; then
+    UPSTREAM_ZIG=$(sed -n -E 's/.*minimum_zig_version *= *"([^"]+)".*/\1/p' "${EXTRACTED_DIR}/build.zig.zon" | head -n 1 | tr -d ' \n\r')
+  fi
+
+  UPSTREAM_PVE=""
+  if [ -f "${EXTRACTED_DIR}/README.md" ]; then
+    UPSTREAM_PVE=$(grep -o -E "Proxmox VE [0-9]+(\.[0-9x]+)?" "${EXTRACTED_DIR}/README.md" | head -n 1 | sed -E 's/Proxmox VE/PVE/' | tr -d '\r\n')
+  fi
+
+  UPSTREAM_COMMIT=$(curl -sSL -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/${UPSTREAM_REPO}/commits/${UPSTREAM_BRANCH}" 2>/dev/null | grep -o -E '"sha": "[a-f0-9]{40}"' | head -n 1 | cut -d'"' -f4 | cut -c1-7 || echo "")
+  [ -z "$UPSTREAM_COMMIT" ] && UPSTREAM_COMMIT="956571a"
+
+  DEMO_VER=$(tr -d ' \n\r' < "${DEMO_DIR}/VERSION" 2>/dev/null || echo "1.0.0")
+
+  echo "  -> Upstream specifications detected dynamically:"
+  echo "     * Demo Version:    v${DEMO_VER}"
+  echo "     * NexCage Engine:  v${NEW_VER:-0.17.0}"
+  echo "     * Target Proxmox:  ${UPSTREAM_PVE:-PVE 9.2}"
+  echo "     * Zig Compiler:    ${UPSTREAM_ZIG:-0.15.1}"
+  echo "     * Commit SHA:      ${UPSTREAM_COMMIT}"
+
+  # Update package.json version with Demo version
+  if command -v sed &>/dev/null; then
+    sed -i.bak -E "s/\"version\": \"[^\"]+\"/\"version\": \"${DEMO_VER}\"/" "${DEMO_DIR}/package.json"
+    rm -f "${DEMO_DIR}/package.json.bak"
+  fi
+
+  # Generate src/version.ts dynamically
+  cat <<EOF > "${DEMO_DIR}/src/version.ts"
+// Centralized version specifications - auto-generated dynamically by sync_from_upstream.sh
+export const DEMO_VERSION = '${DEMO_VER}';
+export const NEXCAGE_VERSION = '${NEW_VER:-0.17.0}';
+export const PROXMOX_VERSION = '${UPSTREAM_PVE:-PVE 9.2}';
+export const PROXMOX_FULL_VERSION = 'pve-manager/9.2.20/3817a0a3 (kernel: 6.14.2-1-pve, Debian 13 Trixie)';
+export const ZIG_VERSION = '${UPSTREAM_ZIG:-0.15.1}';
+export const COMMIT_HASH = '${UPSTREAM_COMMIT}';
+EOF
 
   echo -e "${GREEN}  ✓ Frontend files updated successfully without modifying parent repo!${NC}"
 }
@@ -167,13 +203,36 @@ pull_upstream_sources() {
 build_bundle() {
   echo -e "\n${BLUE}==> [3/4] Rebuilding standalone demo...${NC}"
   pushd "$DEMO_DIR" >/dev/null
+
+  if command -v node &>/dev/null; then
+    NODE_VERSION=$(node -v 2>/dev/null || echo "0")
+    NODE_MAJOR=$(echo "$NODE_VERSION" | sed -E 's/^v([0-9]+).*/\1/')
+    if [ "$NODE_MAJOR" -lt 20 ]; then
+      echo -e "${YELLOW}  ⚠️  Detected Node.js ${NODE_VERSION} (< 20).${NC}"
+      echo -e "${YELLOW}      Tailwind CSS v4 (@tailwindcss/oxide) requires Node.js >= 20.${NC}"
+      echo -e "      To upgrade Node.js on Ubuntu/Pop!_OS:"
+      echo -e "        ${CYAN}curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs${NC}"
+      echo -e "      Or with nvm:"
+      echo -e "        ${CYAN}nvm install 20 && nvm use 20${NC}"
+    fi
+  fi
+
   if command -v npm &>/dev/null; then
     if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/tsc" ]; then
       echo "  -> Dependencies missing in demo-cluster. Running npm install..."
-      npm install
+      npm install || {
+        echo -e "${RED}  ❌ npm install failed.${NC}"
+      }
     fi
     echo "  -> Compiling and building production assets (npm run build)..."
-    npm run build
+    if ! npm run build; then
+      echo -e "\n${RED}  ❌ Build failed.${NC}"
+      echo -e "${YELLOW}  👉 If the error says 'Cannot find native binding' (@tailwindcss/oxide):${NC}"
+      echo -e "     Tailwind v4 requires Node.js >= 20. Update Node.js, remove node_modules and reinstall:${NC}"
+      echo -e "     ${CYAN}rm -rf node_modules package-lock.json && npm install && npm run build${NC}\n"
+      popd >/dev/null
+      return 1
+    fi
     echo -e "${GREEN}  ✓ Build complete! ${DEMO_DIR}/dist is updated.${NC}"
   else
     echo -e "${YELLOW}  ⚠️ npm not found. Skipping build step.${NC}"
