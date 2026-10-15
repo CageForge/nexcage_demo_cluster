@@ -44,10 +44,33 @@ Run the built-in update script directly inside this directory:
 ./scripts/sync_from_upstream.sh
 ```
 
+This single command:
+1. Checks for new upstream releases.
+2. Pulls and updates the latest UI code from `CageForge/nexcage:main`.
+3. Rebuilds production assets (`npm run build`).
+4. **Automatically regenerates the standalone distribution archives** (`nexcage-demo-cluster.zip` and `nexcage-demo-cluster.tar.gz`).
+
 Flags available:
 - `./scripts/sync_from_upstream.sh --check` — Only checks if upstream has a newer release.
 - `./scripts/sync_from_upstream.sh --pull`  — Downloads and updates frontend components directly from `CageForge/nexcage:main`.
 - `./scripts/sync_from_upstream.sh --build` — Verifies production build.
+- `./scripts/sync_from_upstream.sh --pack`  — Regenerates only the `.zip` and `.tar.gz` archives (also via `npm run pack`).
+- `./scripts/sync_from_upstream.sh --commit` — Automatically commits updated files and archives to your demo git repository.
+
+---
+
+## 📦 Standalone Distribution Archives
+
+Ready-to-use, zero-dependency archives are tracked directly in this repository:
+- **`nexcage-demo-cluster.zip`** — for Windows, macOS, and Linux
+- **`nexcage-demo-cluster.tar.gz`** — for Linux and macOS environments
+
+To manually refresh the archives at any time without pulling from upstream:
+```bash
+npm run pack
+# or
+python3 scripts/package_archives.py
+```
 
 ---
 

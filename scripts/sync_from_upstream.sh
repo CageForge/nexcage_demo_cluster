@@ -6,6 +6,9 @@
 # It pulls the latest frontend files and version from the main upstream 
 # repository (CageForge/nexcage) directly via GitHub without modifying or 
 # touching your local fork repository!
+#
+# When run, it also automatically rebuilds and refreshes the standalone
+# distribution archives (nexcage-demo-cluster.zip and nexcage-demo-cluster.tar.gz).
 # ==============================================================================
 
 set -euo pipefail
@@ -13,7 +16,7 @@ set -euo pipefail
 # ANSI Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+YELLOW='\1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
@@ -26,6 +29,7 @@ UPSTREAM_BRANCH="main"
 DO_CHECK=false
 DO_PULL=false
 DO_BUILD=false
+DO_PACK=false
 DO_COMMIT=false
 
 print_banner() {
@@ -44,19 +48,22 @@ usage() {
   echo "  -c, --check       Check upstream ${UPSTREAM_REPO} for newer release"
   echo "  -p, --pull        Fetch and update frontend sources directly from upstream GitHub"
   echo "  -b, --build       Run npm install & build in demo-cluster"
-  echo "  --commit          Commit updated changes to local demo git repo"
-  echo "  --all             Run check, pull, and build (default when run without flags)"
+  echo "  -k, --pack        Re-package nexcage-demo-cluster.zip and .tar.gz archives"
+  echo "  --commit          Commit updated changes and archives to demo git repo"
+  echo "  --all             Run check, pull, build, and package (default when run without flags)"
   echo "  -h, --help        Show this help message"
   echo ""
   echo "Examples:"
-  echo "  ./scripts/sync_from_upstream.sh          # Full sync: check, fetch from upstream, rebuild"
+  echo "  ./scripts/sync_from_upstream.sh          # Full sync: check, fetch from upstream, rebuild & update archives"
   echo "  ./scripts/sync_from_upstream.sh --check  # Check if a new upstream release is available"
+  echo "  ./scripts/sync_from_upstream.sh --pack   # Only regenerate standalone archives"
 }
 
 if [ $# -eq 0 ]; then
   DO_CHECK=true
   DO_PULL=true
   DO_BUILD=true
+  DO_PACK=true
 else
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -72,6 +79,10 @@ else
         DO_BUILD=true
         shift
         ;;
+      -k|--pack)
+        DO_PACK=true
+        shift
+        ;;
       --commit)
         DO_COMMIT=true
         shift
@@ -80,6 +91,7 @@ else
         DO_CHECK=true
         DO_PULL=true
         DO_BUILD=true
+        DO_PACK=true
         shift
         ;;
       -h|--help)
@@ -98,7 +110,7 @@ fi
 print_banner
 
 check_release() {
-  echo -e "${BLUE}==> [1/3] Checking upstream release status...${NC}"
+  echo -e "${BLUE}==> [1/4] Checking upstream release status...${NC}"
   CURRENT_VERSION=$(node -p "require('${DEMO_DIR}/package.json').version" 2>/dev/null || echo "unknown")
   echo -e "  Current demo package version: ${GREEN}${CURRENT_VERSION}${NC}"
 
@@ -120,7 +132,7 @@ check_release() {
 }
 
 pull_upstream_sources() {
-  echo -e "\n${BLUE}==> [2/3] Fetching latest frontend sources from upstream...${NC}"
+  echo -e "\n${BLUE}==> [2/4] Fetching latest frontend sources from upstream...${NC}"
   TMP_DIR=$(mktemp -d /tmp/nexcage-sync-XXXXXX)
   trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -153,9 +165,14 @@ pull_upstream_sources() {
 }
 
 build_bundle() {
-  echo -e "\n${BLUE}==> [3/3] Rebuilding standalone demo...${NC}"
+  echo -e "\n${BLUE}==> [3/4] Rebuilding standalone demo...${NC}"
   pushd "$DEMO_DIR" >/dev/null
   if command -v npm &>/dev/null; then
+    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/tsc" ]; then
+      echo "  -> Dependencies missing in demo-cluster. Running npm install..."
+      npm install
+    fi
+    echo "  -> Compiling and building production assets (npm run build)..."
     npm run build
     echo -e "${GREEN}  ✓ Build complete! ${DEMO_DIR}/dist is updated.${NC}"
   else
@@ -164,8 +181,33 @@ build_bundle() {
   popd >/dev/null
 }
 
+package_distribution() {
+  echo -e "\n${BLUE}==> [4/4] Updating distribution archives (zip & tar.gz)...${NC}"
+  if [ -f "${SCRIPT_DIR}/package_archives.py" ]; then
+    python3 "${SCRIPT_DIR}/package_archives.py"
+  elif [ -f "${SCRIPT_DIR}/package_archives.sh" ]; then
+    bash "${SCRIPT_DIR}/package_archives.sh"
+  fi
+  echo -e "${GREEN}  ✓ Standalone archives (nexcage-demo-cluster.zip & .tar.gz) updated.${NC}"
+}
+
+commit_changes() {
+  pushd "$DEMO_DIR" >/dev/null
+  if git rev-parse --is-inside-work-tree &>/dev/null; then
+    echo -e "\n${BLUE}==> Committing changes and updated archives to demo repository...${NC}"
+    git add src/ package.json dist/ nexcage-demo-cluster.zip nexcage-demo-cluster.tar.gz README.md .github/ scripts/ 2>/dev/null || git add .
+    git commit -m "chore(demo): sync upstream changes and update release archives" || echo "No changes to commit."
+    echo -e "${GREEN}  ✓ Changes committed to local git branch.${NC}"
+  else
+    echo -e "${YELLOW}  ⚠️ Demo directory is not a git repository. Skipping commit.${NC}"
+  fi
+  popd >/dev/null
+}
+
 if [ "$DO_CHECK" = true ]; then check_release; fi
 if [ "$DO_PULL" = true ]; then pull_upstream_sources; fi
 if [ "$DO_BUILD" = true ]; then build_bundle; fi
+if [ "$DO_PACK" = true ]; then package_distribution; fi
+if [ "$DO_COMMIT" = true ]; then commit_changes; fi
 
-echo -e "\n${GREEN}✨ Demo cluster successfully synchronized!${NC}"
+echo -e "\n${GREEN}✨ Demo cluster successfully synchronized and archives refreshed!${NC}"

@@ -1,11 +1,12 @@
 {
   "name": "nexcage-demo-cluster",
   "private": true,
-  "version": "0.13.0",
+  "version": "0.17.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc && vite build",
+    "pack": "python3 scripts/package_archives.py || bash scripts/package_archives.sh",
     "preview": "vite preview --port 3000 --host 0.0.0.0",
     "lint": "tsc --noEmit"
   },
