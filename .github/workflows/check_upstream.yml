@@ -1,0 +1,94 @@
+name: Check Upstream NexCage Releases
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-upstream:
+    name: Check Upstream Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read demo package.json version
+        id: demo_version
+        run: |
+          DEMO_VER=$(jq -r '.version // "0.0.0"' package.json)
+          echo "version=${DEMO_VER}" >> "$GITHUB_OUTPUT"
+          echo "Current demo version: ${DEMO_VER}"
+
+      - name: Fetch CageForge/nexcage latest release
+        id: upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_JSON=$(curl -sSL -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/CageForge/nexcage/releases/latest" || true)
+
+          UPSTREAM_TAG=$(echo "$RELEASE_JSON" | jq -r '.tag_name // empty')
+          HTML_URL=$(echo "$RELEASE_JSON" | jq -r '.html_url // empty')
+
+          if [ -z "$UPSTREAM_TAG" ]; then
+            echo "No upstream release found or API rate limited."
+            echo "has_update=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CLEAN_TAG="${UPSTREAM_TAG#v}"
+          DEMO_VER="${{ steps.demo_version.outputs.version }}"
+
+          echo "Upstream release: ${UPSTREAM_TAG} (${CLEAN_TAG})"
+          echo "tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+          echo "url=${HTML_URL}" >> "$GITHUB_OUTPUT"
+
+          if [ "$CLEAN_TAG" != "$DEMO_VER" ]; then
+            echo "New upstream version detected: ${CLEAN_TAG} != ${DEMO_VER}"
+            echo "has_update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Demo version is up to date: ${DEMO_VER}"
+            echo "has_update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify via Issue if update is available
+        if: steps.upstream.outputs.has_update == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="🔔 Upstream NexCage has updated to ${{ steps.upstream.outputs.tag }}"
+          
+          # Check if issue already exists
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --state open \
+            --search "${{ steps.upstream.outputs.tag }}" \
+            --json number \
+            --jq '.[0].number // empty' || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Issue #$EXISTING already exists for this version."
+            exit 0
+          fi
+
+          BODY=$(cat <<EOF
+          ### 🚀 New NexCage Version Available
+
+          The main [CageForge/nexcage](${{ steps.upstream.outputs.url }}) repository has released **${{ steps.upstream.outputs.tag }}**.
+          Current demo version is **${{ steps.demo_version.outputs.version }}**.
+
+          To update your demo cluster and archives:
+          1. Run `./scripts/sync_from_upstream.sh` directly in this repository.
+          2. Commit and push the updated files (the script automatically rebuilds both code and release archives).
+          EOF
+          )
+
+          gh issue create --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --body "$BODY"
