@@ -5,6 +5,26 @@ Standalone interactive Web UI & Cluster Simulator for **[NexCage](https://github
 This repository is **completely standalone** and isolated. It simulates the NexCage OCI runtime, node agents, Raft consensus, metrics streaming, container lifecycles, and logs without requiring root privileges or a Linux environment.
 
 ---
+## ✨ Features Demonstrated
+
+- **Multi-Node Container Lifecycle**:
+  - Full container orchestration (`create`, `start`, `stop`, `pause`, `resume`, `kill`, `delete`, `update limits`) across cluster nodes (`mgr`, `titan`, `prox-home`).
+  - **Quick Actions Menu**: 1-click start, stop, restart, and freeze directly from each row without entering modals.
+- **Dual Runtime Routing Engine**:
+  - Automatically routes workloads between standard `proxmox-lxc` and `crun` (OCI) using regex patterns (e.g. `^(kube-ovn-.*|cilium-.*)$` → `crun`, `*` → `lxc`).
+- **OCI Runtime Spec v1.1.0 Inspector**:
+  - Live inspection of `nexcage state <container>` producing compliant OCI State JSON with node annotations.
+- **In-Browser Container Shell (`pct exec`)**:
+  - Interactive console honoring local vs. remote cluster node constraints.
+- **Storage & Template Registry**:
+  - Template manager (`nexcage images`), pulling OCI images (`nexcage pull`), and removing volume templates (`nexcage rmi`).
+- **Cluster & Storage Topology**:
+  - Corosync quorum status, cluster nodes health, and storage pools utilization (LVM-Thin, ZFS, shared RDMA/NFS).
+- **Interactive CLI Terminal**:
+  - Terminal emulator supporting authentic `nexcage` commands (`list`, `start`, `stop`, `state`, `health`, `features`, `--help`, etc.).
+- **Subsystem Diagnostics**:
+  - Real-time health inspector verifying Proxmox VE tools (`pct`, `pvesh`, `pvesm`), ZFS datasets, and libcrun subsystem.
+---
 
 ## 🚀 Quick Start
 
